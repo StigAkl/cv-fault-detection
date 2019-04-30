@@ -2,86 +2,67 @@ import cv2
 import numpy as np;
 from matplotlib import pyplot as plt
 
+def process_image(img):
+        binary = grayscale_to_binary(img)
+        mblur, mblur2 = median_blur(binary)
+        cv2.imwrite('binary.jpg', mblur2)
+        contours(binary, img)
+        #plot(1, mblur, mblur2)
+        print("processing")
+        
+def contours(img, original):
+
+    test_img = cv2.imread('binary.jpg')
+    empty_image = np.zeros(test_img.shape)
+    
+    imgray = cv2.cvtColor(test_img,cv2.COLOR_RGB2GRAY)
+    ret,thresh = cv2.threshold(imgray,130,255,0)
+
+    _,contours,_ = cv2.findContours(thresh.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+    cv2.drawContours(empty_image, contours, -1, (0,255,0),1)
+
+    plot(1, empty_image, test_img)
+
 def grayscale_to_binary(img):
     #Resize image
     resized_image = cv2.resize(img, (0,0), fx=0.2, fy=0.2)
     blur = cv2.GaussianBlur(resized_image,(5,5),0)
-    ret3,th3 = cv2.threshold(blur,126,256,cv2.THRESH_BINARY,cv2.THRESH_OTSU)
-    ret, gray = cv2.threshold(resized_image,105,256,cv2.THRESH_BINARY)
+    
+    #region_of_interest
+    roi = resized_image[200:550,:]
 
+    #Threshold
     #Resource: https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_imgproc/py_thresholding/py_thresholding.html
-
-
-    #Add median blur
-    kernel = np.ones((5,5),np.float32)/25
-    dst = cv2.filter2D(th3,-1,kernel)
-
-    median_blur(gray)
+    ret3,th3 = cv2.threshold(blur,105,256,cv2.THRESH_BINARY,cv2.THRESH_OTSU)
+    ret, binary_thresh = cv2.threshold(roi,110,256,cv2.THRESH_BINARY)
+    return binary_thresh
 
 def canny_edge(img):
     return cv2.Canny(img, 0,0)
 
 def median_blur(img):
     kernel = np.ones((5,5), np.float32)/20
-    kernel2 = np.ones((10,10), np.float32)/500
+    kernel2 = np.ones((3,3), np.float32)/2
     dst = cv2.filter2D(img, -1, kernel)
     dst2 = cv2.filter2D(img, -1, kernel2)
 
-    cv2.imshow("img", dst2)
-    cv2.waitKey(0)
+    return dst, dst2
 
-    plt.subplot(121),plt.imshow(cv2.cvtColor(dst2, cv2.COLOR_BGR2RGB)),plt.title('Dst2')
-    plt.xticks([]), plt.yticks([])
-    plt.subplot(122),plt.imshow(dst),plt.title('Averaging')
-    plt.xticks([]), plt.yticks([])
-    plt.show()
-
-img = cv2.imread('imgs/gear_nozzle_far.jpg', 1)
-grayscale_to_binary(img)
-
-#subtract_background(img)
-
-# # Read image
-# im = cv2.imread("imgs/gear_side.jpg")
-
-# small = cv2.resize(im, (0,0), fx=0.2, fy=0.2) 
-# # Setup SimpleBlobDetector parameters.
-# params = cv2.SimpleBlobDetector_Params()
-
-# # Change thresholds
-# params.minThreshold = 10
-# params.maxThreshold = 200
+def plot(cols, *imgs):
+        fig = plt.figure()
+        num_images = len(imgs)
+        print(num_images)
+        n = 0
+        for img in imgs:
+            a = fig.add_subplot(cols, np.ceil(num_images/float(cols)), n+1)
+            n = n+1
+            plt.imshow(img, cmap='gray')
+            a.set_title("Image" + str(n))
+        fig.set_size_inches(np.array(fig.get_size_inches()) * num_images)
+        plt.show()
 
 
-# # Filter by Area.
-# params.filterByArea = True
-# params.minArea = 5
-
-# # Filter by Circularity
-# params.filterByCircularity = True
-# params.minCircularity = 0.1
-
-# # Filter by Convexity
-# params.filterByConvexity = True
-# params.minConvexity = 0.9
-
-# # Filter by Inertia
-# params.filterByInertia = True
-# params.minInertiaRatio = 0.01
-
-# # Create a detector with the parameters
-# detector = cv2.SimpleBlobDetector_create(params)
-
-
-# # Detect blobs.
-# keypoints = detector.detect(small)
-# print(len(keypoints))
-# # Draw detected blobs as red circles.
-# # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures
-# # the size of the circle corresponds to the size of blob
-
-# im_with_keypoints = cv2.drawKeypoints(small, keypoints, np.array([]), (0,255,0), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-
-# # Show blobs
-# cv2.imshow("Keypoints", im_with_keypoints)
-# cv2.waitKey(0)
+if __name__ == '__main__':
+    img = cv2.imread('imgs/gear_nozzle_far.jpg', cv2.IMREAD_GRAYSCALE)
+    process_image(img)
